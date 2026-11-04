@@ -1,6 +1,6 @@
 const liste=document.getElementById("liste-eleves");
 const compteur=document.getElementById("compteur");
-compteur.textContent=`${eleves.length} élèves`
+const aucunResultat=document.getElementById("aucun-resultat");
 
 function calculerMoyenne(notes){
     if(notes.length===0) return null;
@@ -12,6 +12,8 @@ function calculerMoyenne(notes){
 
 }
 // console.log(calculerMoyenne(eleves[5].notes));
+// console.log(aucunResultat);
+
 
 function formaterMoyenne(moyenne) {
   if (moyenne === null) return "—";
@@ -35,5 +37,52 @@ function creerLigne(eleve){
     return li;
 
 }
-const lignes=eleves.map(creerLigne);
-liste.append(...lignes);
+
+function afficher(listeEleves) {
+  const lignes = listeEleves.map(creerLigne);
+  liste.replaceChildren(...lignes);
+  compteur.textContent=`${listeEleves.length} élèves`;
+  aucunResultat.hidden= listeEleves.length > 0;
+
+}
+
+
+
+const filterGroup = document.getElementById("filtre-groupe");
+
+function creerOption(groupe) {
+  const option = document.createElement("option");
+  option.textContent = groupe.nom;
+  option.value = groupe.id;
+  return option;
+}
+const options = groupes.map(creerOption);
+filterGroup.append(...options);
+
+function filtrer() {
+  const texte = recherche.value.toLowerCase();
+  
+  const elevesFiltres = eleves.filter((eleve) => {
+    const nomComplet=`${eleve.nom} ${eleve.prenom}`.toLowerCase();
+    const nomOK=nomComplet.includes(texte);
+    const groupeOK= filterGroup.value === "" || eleve.groupeId === Number(filterGroup.value);
+    
+    return groupeOK && nomOK;
+  });
+  afficher(elevesFiltres);
+}
+
+filterGroup.addEventListener("change", () => {
+  filtrer();
+});
+
+afficher(eleves);
+
+
+const recherche=document.getElementById("recherche");
+recherche.addEventListener("input",()=>{
+   filtrer();
+ 
+})
+
+
