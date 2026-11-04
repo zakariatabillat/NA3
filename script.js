@@ -49,6 +49,7 @@ function creerLigne(eleve) {
   btnNote.textContent = "Ajouter la note";
   btnNote.classList.add("btn-note");
 
+
   if (eleve.absences >= 3) {
     li.classList.add("alerte");
 
@@ -60,6 +61,10 @@ function creerLigne(eleve) {
   }
 
   li.append(nom, absences, spanMoyenne, btnAbsent, inputNote, btnNote);
+    const message=document.createElement("p");
+  message.textContent="La note doit être un nombre entre 0 et 20.";
+  message.hidden=true;
+  li.append(message)
   return li;
 }
 
@@ -125,9 +130,13 @@ const eleve=eleves.find((el)=>{
 if (btnNote !== null) {
 const champ=ligne.querySelector("input");
 const note=Number(champ.value);
-console.log(note);
+const valide=(note>=0 && note<=20 && champ.value!=="");
+if (!valide) {
+ ligne.querySelector("p").hidden = false;
 
-
+  return;
+}
+ eleve.notes.push(note);
 }
 ligne.replaceWith(creerLigne(eleve));
 }
