@@ -21,27 +21,46 @@ function formaterMoyenne(moyenne) {
   return `${arrondie} / 20`;
 }
 
-function creerLigne(eleve){
-    const li=document.createElement("li");
-    const nom=document.createElement("span");
-    const absences=document.createElement("span");
-    const spanMoyenne=document.createElement("span")
-    absences.classList.add("block","text-sm","text-muted")
-    absences.textContent=`${eleve.absences} absences`
-   spanMoyenne.textContent = formaterMoyenne(calculerMoyenne(eleve.notes));
-   spanMoyenne.classList.add("font-serif","text-xl")
-    nom.textContent=`${eleve.prenom} ${eleve.nom}`
-    li.classList.add("bg-card","rounded-2xl", "border", "border-line","p-3");
+function creerLigne(eleve) {
+  const li = document.createElement("li");
+  li.classList.add("bg-card", "rounded-2xl", "border", "border-line", "p-3");
+  li.dataset.id = eleve.id;
 
-    li.append(nom,absences,spanMoyenne);
-    li.dataset.id = eleve.id;
-    const btnAbsent=document.createElement("button");
-    btnAbsent.textContent="Absent";
-    li.append(btnAbsent);
-    btnAbsent.classList.add("btn-absent");
-    
-    return li;
+  const nom = document.createElement("span");
+  nom.textContent = `${eleve.prenom} ${eleve.nom}`;
 
+  const absences = document.createElement("span");
+  absences.classList.add("block", "text-sm", "text-muted");
+  absences.textContent = `${eleve.absences} absences`;
+
+  const spanMoyenne = document.createElement("span");
+  spanMoyenne.classList.add("font-serif", "text-xl");
+  spanMoyenne.textContent = formaterMoyenne(calculerMoyenne(eleve.notes));
+
+  const btnAbsent = document.createElement("button");
+  btnAbsent.textContent = "Absent";
+  btnAbsent.classList.add("btn-absent");
+
+  const inputNote = document.createElement("input");
+  inputNote.type = "number";
+  inputNote.placeholder = "Note";
+
+  const btnNote = document.createElement("button");
+  btnNote.textContent = "Ajouter la note";
+  btnNote.classList.add("btn-note");
+
+  if (eleve.absences >= 3) {
+    li.classList.add("alerte");
+
+    const badge = document.createElement("span");
+    badge.textContent = "Prévenir les parents";
+    badge.classList.add("badge", "ml-1", "whitespace-nowrap", "rounded-full", "bg-alert",
+                        "px-2", "py-0.5", "text-xs", "font-medium", "text-white");
+    absences.append(badge);
+  }
+
+  li.append(nom, absences, spanMoyenne, btnAbsent, inputNote, btnNote);
+  return li;
 }
 
 function afficher(listeEleves) {
@@ -93,15 +112,39 @@ recherche.addEventListener("input",()=>{
 
 liste.addEventListener("click", (e) => {
 const btnAbsent=e.target.closest(".btn-absent");
-  if (btnAbsent === null) return;
-const ligne=btnAbsent.closest("li")
+const btnNote = e.target.closest(".btn-note");
+if (btnAbsent === null && btnNote===null) return;
+const ligne = e.target.closest("li");
 const id=Number(ligne.dataset.id);
 const eleve=eleves.find((el)=>{
   return el.id===id;
 })
+ if (btnAbsent !== null) {
   eleve.absences++;
-  ligne.replaceWith(creerLigne(eleve));
+}
+if (btnNote !== null) {
+const champ=ligne.querySelector("input");
+const note=Number(champ.value);
+console.log(note);
+
+
+}
+ligne.replaceWith(creerLigne(eleve));
 }
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
