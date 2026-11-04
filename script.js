@@ -34,6 +34,12 @@ function creerLigne(eleve){
     li.classList.add("bg-card","rounded-2xl", "border", "border-line","p-3");
 
     li.append(nom,absences,spanMoyenne);
+    li.dataset.id = eleve.id;
+    const btnAbsent=document.createElement("button");
+    btnAbsent.textContent="Absent";
+    li.append(btnAbsent);
+    btnAbsent.classList.add("btn-absent");
+    
     return li;
 
 }
@@ -84,5 +90,18 @@ recherche.addEventListener("input",()=>{
    filtrer();
  
 })
+
+liste.addEventListener("click", (e) => {
+const btnAbsent=e.target.closest(".btn-absent");
+  if (btnAbsent === null) return;
+const ligne=btnAbsent.closest("li")
+const id=Number(ligne.dataset.id);
+const eleve=eleves.find((el)=>{
+  return el.id===id;
+})
+  eleve.absences++;
+  ligne.replaceWith(creerLigne(eleve));
+}
+)
 
 
