@@ -1,15 +1,17 @@
-
 const liste = document.getElementById("liste-eleves");
 const compteur = document.getElementById("compteur");
 const aucunResultat = document.getElementById("aucun-resultat");
 const recherche = document.getElementById("recherche");
-const filterGroup = document.getElementById("filtre-groupe");
+const filtreGroupe = document.getElementById("filtre-groupe");
 const tri = document.getElementById("tri");
 
-const SEUIL_ALERTE = 3;      
-const MAX_PAR_GROUPE = 15;   
-
-
+// ---------- Outils ----------
+function creer(balise, classes, texte) {
+  const el = document.createElement(balise);
+  el.classList.add(...classes.split(" "));
+  if (texte !== undefined) el.textContent = texte;
+  return el;
+}
 
 function calculerMoyenne(notes) {
   if (notes.length === 0) return null;
@@ -20,10 +22,8 @@ function calculerMoyenne(notes) {
   return total / notes.length;
 }
 
-// 13.5 -> "13,5"
 function formaterNombre(nombre) {
-  const arrondi = Math.round(nombre * 10) / 10;
-  return String(arrondi).replace(".", ",");
+  return String(Math.round(nombre * 10) / 10).replace(".", ",");
 }
 
 function formaterMoyenne(moyenne) {
@@ -31,117 +31,64 @@ function formaterMoyenne(moyenne) {
   return `${formaterNombre(moyenne)} / 20`;
 }
 
-function trouverGroupe(id) {
-  return groupes.find((g) => g.id === id);
-}
-
-function estEnAlerte(eleve) {
-  return eleve.absences >= SEUIL_ALERTE;
-}
-
-
-
+// ---------- Une ligne élève ----------
 function creerLigne(eleve) {
-  const alerte = estEnAlerte(eleve);
+  const alerte = eleve.absences >= 3;
 
-  const li = document.createElement("li");
-  li.classList.add("rounded-2xl", "border", "border-line", "bg-card", "p-3");
+  const li = creer("li", "rounded-2xl border border-line bg-card p-3");
   if (alerte) li.classList.add("alerte");
   li.dataset.id = eleve.id;
 
-  const conteneur = document.createElement("div");
-  conteneur.classList.add("flex", "flex-col", "gap-3", "lg:flex-row", "lg:items-center");
+  const div = creer("div", "flex flex-col gap-3 lg:flex-row lg:items-center");
 
-  // --- Partie gauche : bouton qui ouvre la fiche ---
-  const btnFiche = document.createElement("button");
+  const btnFiche = creer("button", "btn-fiche flex min-h-11 flex-1 items-center gap-3 text-left");
   btnFiche.type = "button";
-  btnFiche.classList.add("btn-fiche", "flex", "min-h-11", "flex-1", "items-center", "gap-3", "text-left");
 
-  const initiales = document.createElement("span");
-  initiales.classList.add("grid", "size-10", "shrink-0", "place-items-center", "rounded-full", "text-sm", "font-semibold");
+  const couleur = alerte ? "bg-alert text-white" : "bg-brand-soft text-brand";
+  const initiales = creer("span", `grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold ${couleur}`,
+                          eleve.prenom[0] + eleve.nom[0]);
+
+  const infos = creer("span", "min-w-0 flex-1");
+  const nom = creer("span", "block truncate font-medium", `${eleve.prenom} ${eleve.nom}`);
+  const absences = creer("span", "block text-sm text-muted",
+                         `${eleve.absences} absence${eleve.absences > 1 ? "s" : ""}`);
   if (alerte) {
-    initiales.classList.add("bg-alert", "text-white");
-  } else {
-    initiales.classList.add("bg-brand-soft", "text-brand");
-  }
-  initiales.textContent = `${eleve.prenom[0]}${eleve.nom[0]}`.toUpperCase();
-
-  const infos = document.createElement("span");
-  infos.classList.add("min-w-0", "flex-1");
-
-  const nom = document.createElement("span");
-  nom.classList.add("block", "truncate", "font-medium");
-  nom.textContent = `${eleve.prenom} ${eleve.nom}`;
-
-  const absences = document.createElement("span");
-  absences.classList.add("block", "text-sm", "text-muted");
-  absences.textContent = eleve.absences > 1 ? `${eleve.absences} absences` : `${eleve.absences} absence`;
-
-  if (alerte) {
-    const badge = document.createElement("span");
-    badge.textContent = "Prévenir les parents";
-    badge.classList.add("badge", "ml-1", "whitespace-nowrap", "rounded-full", "bg-alert",
-                        "px-2", "py-0.5", "text-xs", "font-medium", "text-white");
+    const badge = creer("span", "badge ml-1 whitespace-nowrap rounded-full bg-alert px-2 py-0.5 text-xs font-medium text-white",
+                        "Prévenir les parents");
     absences.append(" ", badge);
   }
-
   infos.append(nom, absences);
 
-  const spanMoyenne = document.createElement("span");
-  spanMoyenne.classList.add("font-serif", "text-xl");
-  spanMoyenne.textContent = formaterMoyenne(calculerMoyenne(eleve.notes));
+  const moyenne = creer("span", "font-serif text-xl", formaterMoyenne(calculerMoyenne(eleve.notes)));
+  btnFiche.append(initiales, infos, moyenne);
 
-  btnFiche.append(initiales, infos, spanMoyenne);
+  const actions = creer("div", "flex gap-2");
 
-  // --- Partie droite : Absent + note ---
-  const actions = document.createElement("div");
-  actions.classList.add("flex", "gap-2");
-
-  const btnAbsent = document.createElement("button");
+  const btnAbsent = creer("button", "btn-absent h-11 rounded-full border border-line px-3 sm:px-4 text-sm font-medium hover:bg-paper", "Absent");
   btnAbsent.type = "button";
-  btnAbsent.textContent = "Absent";
-  btnAbsent.classList.add("btn-absent", "h-11", "rounded-full", "border", "border-line", "px-3", "sm:px-4",
-                          "text-sm", "font-medium", "hover:bg-paper");
-  if (alerte) btnAbsent.classList.add("bg-card");
 
-  const label = document.createElement("label");
-  label.classList.add("flex-1");
-
-  const labelTexte = document.createElement("span");
-  labelTexte.classList.add("sr-only");
-  labelTexte.textContent = "Note sur 20";
-
-  const inputNote = document.createElement("input");
+  const inputNote = creer("input", "h-11 min-w-0 flex-1 rounded-full border border-line bg-paper px-4 text-sm lg:w-24 lg:flex-none");
   inputNote.type = "number";
-  inputNote.min = "0";
-  inputNote.max = "20";
-  inputNote.step = "0.5";
+  inputNote.min = 0;
+  inputNote.max = 20;
+  inputNote.step = 0.5;
   inputNote.placeholder = "Note";
-  inputNote.classList.add("h-11", "w-full", "rounded-full", "border", "border-line", "px-4", "text-sm", "lg:w-24");
-  inputNote.classList.add(alerte ? "bg-card" : "bg-paper");
+  inputNote.setAttribute("aria-label", "Note sur 20");
 
-  label.append(labelTexte, inputNote);
-
-  const btnNote = document.createElement("button");
+  const btnNote = creer("button", "btn-note h-11 rounded-full bg-ink px-3 sm:px-4 text-sm font-medium text-white hover:bg-brand", "Ajouter la note");
   btnNote.type = "button";
-  btnNote.textContent = "Ajouter la note";
-  btnNote.classList.add("btn-note", "h-11", "rounded-full", "bg-ink", "px-3", "sm:px-4", "text-sm",
-                        "font-medium", "text-white", "hover:bg-brand");
 
-  actions.append(btnAbsent, label, btnNote);
-  conteneur.append(btnFiche, actions);
+  actions.append(btnAbsent, inputNote, btnNote);
+  div.append(btnFiche, actions);
 
-  const message = document.createElement("p");
-  message.classList.add("message", "mt-2", "text-xs", "text-alert");
-  message.textContent = "La note doit être un nombre entre 0 et 20.";
+  const message = creer("p", "message mt-2 text-xs text-alert", "La note doit être un nombre entre 0 et 20.");
   message.hidden = true;
 
-  li.append(conteneur, message);
+  li.append(div, message);
   return li;
 }
 
-
-
+// ---------- Bilan du groupe ----------
 const bilanMoyenne = document.getElementById("bilan-moyenne");
 const bilanAbsences = document.getElementById("bilan-absences");
 const bilanAlertes = document.getElementById("bilan-alertes");
@@ -150,30 +97,23 @@ const listeParents = document.getElementById("liste-parents");
 const aucuneAlerte = document.getElementById("aucune-alerte");
 
 function afficherBilan(listeEleves) {
-  // Moyenne du groupe : moyenne des élèves qui ont des notes
-  const moyennes = listeEleves
-    .map((el) => calculerMoyenne(el.notes))
-    .filter((m) => m !== null);
+  const moyennes = listeEleves.map((el) => calculerMoyenne(el.notes)).filter((m) => m !== null);
   const moyenneGroupe = calculerMoyenne(moyennes);
   bilanMoyenne.textContent = moyenneGroupe === null ? "—" : formaterNombre(moyenneGroupe);
 
-  // Total des absences
   let totalAbsences = 0;
   for (let eleve of listeEleves) {
     totalAbsences += eleve.absences;
   }
   bilanAbsences.textContent = totalAbsences;
 
-  // Alertes
-  const enAlerte = listeEleves.filter(estEnAlerte);
+  const enAlerte = listeEleves.filter((el) => el.absences >= 3);
   bilanAlertes.textContent = enAlerte.length;
 
-  // Meilleure moyenne (B4)
   let meilleur = null;
   for (let eleve of listeEleves) {
-    const moyenne = calculerMoyenne(eleve.notes);
-    if (moyenne === null) continue;
-    if (meilleur === null || moyenne > calculerMoyenne(meilleur.notes)) {
+    const m = calculerMoyenne(eleve.notes);
+    if (m !== null && (meilleur === null || m > calculerMoyenne(meilleur.notes))) {
       meilleur = eleve;
     }
   }
@@ -181,27 +121,21 @@ function afficherBilan(listeEleves) {
     ? "—"
     : `${meilleur.prenom} ${meilleur.nom} — ${formaterMoyenne(calculerMoyenne(meilleur.notes))}`;
 
-  // Parents à appeler
-  const lignesParents = enAlerte.map((eleve) => {
-    const li = document.createElement("li");
-    li.classList.add("rounded-xl", "bg-card", "px-3", "py-2", "ring-1", "ring-line");
-    li.textContent = `${eleve.prenom} ${eleve.nom} — ${eleve.telephoneParent}`;
-    return li;
-  });
+  const lignesParents = enAlerte.map((el) =>
+    creer("li", "rounded-xl bg-card px-3 py-2 ring-1 ring-line", `${el.prenom} ${el.nom} — ${el.telephoneParent}`)
+  );
   listeParents.replaceChildren(...lignesParents);
   aucuneAlerte.hidden = enAlerte.length > 0;
 }
 
-
+// ---------- Affichage, filtre, recherche, tri ----------
 function afficher(listeEleves) {
-  const lignes = listeEleves.map(creerLigne);
-  liste.replaceChildren(...lignes);
-  compteur.textContent = listeEleves.length > 1 ? `${listeEleves.length} élèves` : `${listeEleves.length} élève`;
-  aucunResultat.hidden = listeEleves.length > 0;
+  liste.replaceChildren(...listeEleves.map(creerLigne));
+  const n = listeEleves.length;
+  compteur.textContent = `${n} élève${n > 1 ? "s" : ""}`;
+  aucunResultat.hidden = n > 0;
   afficherBilan(listeEleves);
 }
-
-
 
 function creerOption(groupe) {
   const option = document.createElement("option");
@@ -209,85 +143,62 @@ function creerOption(groupe) {
   option.value = groupe.id;
   return option;
 }
-filterGroup.append(...groupes.map(creerOption));
-
-function trier(listeEleves) {
-  const copie = [...listeEleves]; 
-
-  if (tri.value === "nom") {
-    copie.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, "fr"));
-  }
-
-  if (tri.value === "moyenne") {
-    copie.sort((a, b) => {
-      const ma = calculerMoyenne(a.notes);
-      const mb = calculerMoyenne(b.notes);
-      if (ma === null) return 1;   
-      if (mb === null) return -1;
-      return mb - ma;              
-    });
-  }
-
-  return copie;
-}
+filtreGroupe.append(...groupes.map(creerOption));
 
 function filtrer() {
   const texte = recherche.value.trim().toLowerCase();
 
-  const elevesFiltres = eleves.filter((eleve) => {
+  let resultat = eleves.filter((eleve) => {
     const nomComplet = `${eleve.prenom} ${eleve.nom}`.toLowerCase();
-    const nomInverse = `${eleve.nom} ${eleve.prenom}`.toLowerCase();
-    const nomOK = nomComplet.includes(texte) || nomInverse.includes(texte);
-    const groupeOK = filterGroup.value === "" || eleve.groupeId === Number(filterGroup.value);
-    return groupeOK && nomOK;
+    const nomOK = nomComplet.includes(texte);
+    const groupeOK = filtreGroupe.value === "" || eleve.groupeId === Number(filtreGroupe.value);
+    return nomOK && groupeOK;
   });
 
-  afficher(trier(elevesFiltres));
+  if (tri.value === "nom") {
+    resultat.sort((a, b) => a.nom.localeCompare(b.nom));
+  }
+  if (tri.value === "moyenne") {
+    resultat.sort((a, b) => (calculerMoyenne(b.notes) ?? -1) - (calculerMoyenne(a.notes) ?? -1));
+  }
+
+  afficher(resultat);
 }
 
 recherche.addEventListener("input", filtrer);
-filterGroup.addEventListener("change", filtrer);
+filtreGroupe.addEventListener("change", filtrer);
 tri.addEventListener("change", filtrer);
 
-
-
+// ---------- Fiche élève ----------
 const fiche = document.getElementById("fiche");
 const ficheNom = document.getElementById("fiche-nom");
 const ficheGroupe = document.getElementById("fiche-groupe");
 const ficheNotes = document.getElementById("fiche-notes");
 
 function ouvrirFiche(eleve) {
-  const groupe = trouverGroupe(eleve.groupeId);
+  const groupe = groupes.find((g) => g.id === eleve.groupeId);
   ficheNom.textContent = `${eleve.prenom} ${eleve.nom}`;
-  ficheGroupe.textContent = groupe ? `${groupe.nom} — ${groupe.cours}` : "";
+  ficheGroupe.textContent = `${groupe.nom} — ${groupe.cours}`;
 
   if (eleve.notes.length === 0) {
-    const li = document.createElement("li");
-    li.classList.add("text-sm", "text-muted");
-    li.textContent = "Aucune note pour le moment.";
-    ficheNotes.replaceChildren(li);
+    ficheNotes.replaceChildren(creer("li", "text-sm text-muted", "Aucune note pour le moment."));
   } else {
-    const items = eleve.notes.map((note) => {
-      const li = document.createElement("li");
-      li.classList.add("rounded-full", "bg-paper", "px-3", "py-1");
-      li.textContent = formaterNombre(note);
-      return li;
-    });
-    ficheNotes.replaceChildren(...items);
+    ficheNotes.replaceChildren(...eleve.notes.map((note) =>
+      creer("li", "rounded-full bg-paper px-3 py-1", formaterNombre(note))
+    ));
   }
-
   fiche.showModal();
 }
 
+// ---------- Clics dans la liste ----------
 liste.addEventListener("click", (e) => {
   const btnAbsent = e.target.closest(".btn-absent");
   const btnNote = e.target.closest(".btn-note");
   const btnFiche = e.target.closest(".btn-fiche");
   if (btnAbsent === null && btnNote === null && btnFiche === null) return;
 
-  const ligne = e.target.closest("li[data-id]");
-  const id = Number(ligne.dataset.id);
-  const eleve = eleves.find((el) => el.id === id);
+  const ligne = e.target.closest("li");
+  const eleve = eleves.find((el) => el.id === Number(ligne.dataset.id));
 
   if (btnFiche !== null) {
     ouvrirFiche(eleve);
@@ -309,103 +220,93 @@ liste.addEventListener("click", (e) => {
     eleve.notes.push(note);
   }
 
-  filtrer(); 
+  filtrer();
 });
 
-
-
+// ---------- US4 : formulaire d'ajout ----------
 const form = document.getElementById("form-eleve");
-const selectGroupe = document.getElementById("groupe");
 const codeForce = document.getElementById("code-force");
 const formSucces = document.getElementById("form-succes");
 const formErreur = document.getElementById("form-erreur");
 
-selectGroupe.append(...groupes.map(creerOption));
-
-for (let champ of form.querySelectorAll(".champ")) {
-  champ.classList.remove("valide", "erreur");
-}
-
-const messagesAide = {};
-for (let message of form.querySelectorAll(".message")) {
-  messagesAide[message.id] = message.textContent;
-}
-
-function forceDuCode(code) {
-  let force = 0;
-  if (code.length >= 8) force++;
-  if (/[A-Z]/.test(code) && /\d/.test(code)) force++;
-  if (/[^A-Za-z0-9]/.test(code)) force++;
-  return force;
-}
+document.getElementById("groupe").append(...groupes.map(creerOption));
 
 const regles = {
   prenom: {
-    test: (v) => /^[A-Za-zÀ-ÿ\s-]{2,}$/.test(v.trim()),
+    regex: /^[A-Za-zÀ-ÿ\s-]{2,}$/,
+    aide: "2 caractères minimum : lettres, espaces ou tirets.",
     ok: "Prénom valide.",
-    ko: "2 caractères minimum : lettres, espaces ou tirets."
+    erreur: "Prénom invalide : 2 caractères minimum, lettres, espaces ou tirets."
   },
   nom: {
-    test: (v) => /^[A-Za-zÀ-ÿ\s-]{2,}$/.test(v.trim()),
+    regex: /^[A-Za-zÀ-ÿ\s-]{2,}$/,
+    aide: "2 caractères minimum : lettres, espaces ou tirets.",
     ok: "Nom valide.",
-    ko: "2 caractères minimum : lettres, espaces ou tirets."
+    erreur: "Nom invalide : 2 caractères minimum, lettres, espaces ou tirets."
   },
   groupe: {
-    test: (v) => v !== "",
+    regex: /^\d+$/,
+    aide: "Groupe de l'élève.",
     ok: "Groupe choisi.",
-    ko: "Choisissez un groupe."
+    erreur: "Choisissez un groupe."
   },
   email: {
-    test: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()),
+    regex: /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i,
+    aide: "Exemple : parent@mail.ma",
     ok: "Email valide.",
-    ko: "Email invalide. Exemple : parent@mail.ma"
+    erreur: "Email invalide. Exemple : parent@mail.ma"
   },
   telephone: {
-    test: (v) => /^(0[67]|\+212[67])\d{8}$/.test(v.replace(/\s/g, "")),
+    regex: /^(0[67]|\+212[67])\d{8}$/,
+    aide: "06 / 07 ou +212 6 / 7, puis 8 chiffres.",
     ok: "Téléphone valide.",
-    ko: "06 / 07 ou +212 6 / 7, puis 8 chiffres."
+    erreur: "Numéro invalide : 06 / 07 ou +212 6 / 7, puis 8 chiffres."
   },
   code: {
-    test: (v) => forceDuCode(v) === 3,
-    ok: "Code robuste.",
-    ko: "8 caractères min., 1 majuscule, 1 chiffre, 1 caractère spécial."
+    regex: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+    aide: "8 caractères min., 1 majuscule, 1 chiffre, 1 caractère spécial.",
+    ok: "Code valide.",
+    erreur: "Code trop faible : 8 caractères min., 1 majuscule, 1 chiffre, 1 caractère spécial."
   }
 };
 
 function validerChamp(nomChamp) {
-  const element = form.elements[nomChamp];
-  const champ = element.closest(".champ");
-  const message = document.getElementById(`${nomChamp}-msg`);
-  const regle = regles[nomChamp];
-  const valide = regle.test(element.value);
+  const input = form.elements[nomChamp];
+  const valide = regles[nomChamp].regex.test(input.value.trim());
+  const champ = input.closest(".champ");
 
   champ.classList.toggle("valide", valide);
   champ.classList.toggle("erreur", !valide);
-  message.textContent = valide ? regle.ok : regle.ko;
+  document.getElementById(`${nomChamp}-msg`).textContent = valide ? regles[nomChamp].ok : regles[nomChamp].erreur;
   return valide;
 }
 
-function reinitialiserChamps() {
-  for (let champ of form.querySelectorAll(".champ")) {
-    champ.classList.remove("valide", "erreur");
-  }
-  for (let id in messagesAide) {
-    document.getElementById(id).textContent = messagesAide[id];
+function viderFormulaire() {
+  form.reset();
+  for (let nomChamp in regles) {
+    form.elements[nomChamp].closest(".champ").classList.remove("valide", "erreur");
+    document.getElementById(`${nomChamp}-msg`).textContent = regles[nomChamp].aide;
   }
   codeForce.value = 0;
 }
 
-for (let nomChamp in regles) {
-  const evenement = nomChamp === "groupe" ? "change" : "input";
-  form.elements[nomChamp].addEventListener(evenement, () => {
-    formSucces.hidden = true;
-    formErreur.hidden = true;
-    validerChamp(nomChamp);
-  });
-}
+// Contrôle en temps réel
+form.addEventListener("input", (e) => {
+  const nomChamp = e.target.name;
+  if (regles[nomChamp] === undefined) return;
 
-form.elements.code.addEventListener("input", () => {
-  codeForce.value = forceDuCode(form.elements.code.value);
+  formSucces.hidden = true;
+  formErreur.hidden = true;
+  validerChamp(nomChamp);
+
+  if (nomChamp === "code") {
+    const code = e.target.value;
+    let force = 0;
+    if (code.length >= 8) force++;
+    if (/[A-Z]/.test(code) && /\d/.test(code)) force++;
+    if (/[^A-Za-z0-9]/.test(code)) force++;
+    codeForce.value = force;
+  }
 });
 
 form.addEventListener("submit", (e) => {
@@ -413,41 +314,56 @@ form.addEventListener("submit", (e) => {
   formSucces.hidden = true;
   formErreur.hidden = true;
 
-  let toutValide = true;
-  for (let nomChamp in regles) {
-    if (!validerChamp(nomChamp)) toutValide = false;
-  }
-  if (!toutValide) return;
-
-  const groupeId = Number(form.elements.groupe.value);
-  const tailleGroupe = eleves.filter((el) => el.groupeId === groupeId).length;
-  if (tailleGroupe >= MAX_PAR_GROUPE) {
-    formErreur.textContent = `Ce groupe est complet (${MAX_PAR_GROUPE} élèves).`;
-    formErreur.hidden = false;
+  // Tous les champs valides ? (every)
+  const nomsChamps = Object.keys(regles);
+  const resultats = nomsChamps.map(validerChamp);
+  if (!resultats.every((v) => v)) {
+    form.elements[nomsChamps[resultats.indexOf(false)]].focus();
     return;
   }
 
-  let idMax = 0;
-  for (let eleve of eleves) {
-    if (eleve.id > idMax) idMax = eleve.id;
+  const prenom = form.elements.prenom.value.trim();
+  const nom = form.elements.nom.value.trim();
+  const groupeId = Number(form.elements.groupe.value);
+
+  // Déjà dans ce groupe ? (some)
+  const existe = eleves.some((el) =>
+    el.groupeId === groupeId &&
+    el.prenom.toLowerCase() === prenom.toLowerCase() &&
+    el.nom.toLowerCase() === nom.toLowerCase()
+  );
+  if (existe) {
+    formErreur.textContent = "Cet élève existe déjà dans ce groupe.";
+    formErreur.hidden = false;
+    form.elements.prenom.focus();
+    return;
   }
 
+  // Groupe complet ?
+  if (eleves.filter((el) => el.groupeId === groupeId).length >= 15) {
+    formErreur.textContent = "Ce groupe est complet (15 élèves).";
+    formErreur.hidden = false;
+    form.elements.groupe.focus();
+    return;
+  }
+
+  // Ajout sans le code
   eleves.push({
-    id: idMax + 1,
-    prenom: form.elements.prenom.value.trim(),
-    nom: form.elements.nom.value.trim(),
+    id: Math.max(...eleves.map((el) => el.id)) + 1,
+    prenom: prenom,
+    nom: nom,
     groupeId: groupeId,
     emailParent: form.elements.email.value.trim(),
-    telephoneParent: form.elements.telephone.value.replace(/\s/g, ""),
+    telephoneParent: form.elements.telephone.value.trim(),
     absences: 0,
     notes: []
   });
 
-  form.reset();
-  reinitialiserChamps();
+  viderFormulaire();
   formSucces.hidden = false;
   filtrer();
 });
 
-
+// ---------- Démarrage ----------
+viderFormulaire();
 filtrer();
